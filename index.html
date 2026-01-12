@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>GBC Mystery Sequencer</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg-color: #202020;
+        --case-color: #555;
+        --screen-bg: #9ca04c;
+        --screen-pixel: #0f380f;
+        --dpad-color: #333;
+        --btn-a-color: #a9364a;
+        --btn-b-color: #333;
+      }
+
+      * {
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+        user-select: none;
+      }
+
+      body {
+        background-color: var(--bg-color);
+        margin: 0;
+        padding: 0;
+        height: 100vh;
+        width: 100vw;
+        overflow: hidden;
+        font-family: "Press Start 2P", cursive;
+        display: flex;
+        justify-content: center;
+        color: #ccc;
+      }
+
+      .player-container {
+        width: 100%;
+        height: 100%;
+        max-width: 600px;
+        background-color: var(--case-color);
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+      }
+
+      /* 画面エリア */
+      .screen-area {
+        height: 70vh;
+        width: 100%;
+        padding: 20px;
+        background-color: #444;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        border-bottom: 2px solid #333;
+        border-radius: 0 0 20px 20px;
+        box-shadow: inset 0 -10px 20px rgba(0, 0, 0, 0.3);
+        position: relative;
+        z-index: 10;
+      }
+
+      .lcd-container {
+        width: 100%;
+        height: 100%;
+        background-color: var(--screen-bg);
+        border: 4px solid #333;
+        border-radius: 4px;
+        box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.2);
+        position: relative;
+        display: block;
+        cursor: pointer;
+      }
+
+      #gameCanvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+        image-rendering: -moz-crisp-edges;
+        image-rendering: -webkit-optimize-contrast;
+        image-rendering: crisp-edges;
+        image-rendering: pixelated;
+        -ms-interpolation-mode: nearest-neighbor;
+      }
+
+      .grid-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        /* 横線（スキャンライン）のみに変更して干渉縞を防止 */
+        background: linear-gradient(
+          to bottom,
+          rgba(0, 0, 0, 0) 50%,
+          rgba(0, 0, 0, 0.1) 50%
+        );
+        background-size: 100% 4px;
+        pointer-events: none;
+        z-index: 2;
+      }
+
+      /* 操作エリア */
+      .controls-area {
+        flex: 1;
+        position: relative;
+        background-color: var(--case-color);
+      }
+
+      .d-pad {
+        position: absolute;
+        top: 50%;
+        left: 10%;
+        transform: translateY(-50%);
+        width: 35vw;
+        height: 35vw;
+        max-width: 160px;
+        max-height: 160px;
+      }
+      .d-pad div {
+        position: absolute;
+        background-color: var(--dpad-color);
+        border-radius: 4px;
+        box-shadow: 0.5vh 0.5vh 0 #222;
+      }
+      .d-pad div:active,
+      .d-pad div.active {
+        transform: translate(2px, 2px);
+        box-shadow: none;
+      }
+      .d-pad .h {
+        width: 100%;
+        height: 33%;
+        top: 33%;
+        left: 0;
+      }
+      .d-pad .v {
+        width: 33%;
+        height: 100%;
+        top: 0;
+        left: 33%;
+      }
+      .d-pad .c {
+        width: 33%;
+        height: 33%;
+        top: 33%;
+        left: 33%;
+        z-index: 2;
+        pointer-events: none;
+      }
+
+      .action-btns {
+        position: absolute;
+        top: 50%;
+        right: 5%;
+        transform: translateY(-50%) rotate(-15deg);
+        width: 35vw;
+        height: 15vw;
+        max-width: 160px;
+      }
+      .btn {
+        width: 12vw;
+        height: 12vw;
+        max-width: 50px;
+        max-height: 50px;
+        border-radius: 50%;
+        position: absolute;
+        box-shadow: 0.5vh 0.5vh 0 #222;
+        cursor: pointer;
+        color: rgba(0, 0, 0, 0.3);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-weight: bold;
+        font-size: 10px;
+        font-family: sans-serif;
+      }
+      .btn:active,
+      .btn.active {
+        transform: translate(2px, 2px);
+        box-shadow: none;
+      }
+      .btn-a {
+        right: 0;
+        top: -2vw;
+        background-color: var(--btn-a-color);
+      }
+      .btn-b {
+        left: 2vw;
+        top: 4vw;
+        background-color: var(--btn-b-color);
+      }
+
+      .touch-zone {
+        position: absolute;
+        z-index: 20;
+        width: 30%;
+        height: 30%;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="player-container">
+      <div class="screen-area">
+        <div class="lcd-container">
+          <canvas id="gameCanvas"></canvas>
+          <div class="grid-overlay"></div>
+        </div>
+      </div>
+
+      <div class="controls-area">
+        <div class="d-pad">
+          <div class="v"></div>
+          <div class="h"></div>
+          <div class="c"></div>
+          <div class="touch-zone" id="btn-up" style="top: 0; left: 35%"></div>
+          <div
+            class="touch-zone"
+            id="btn-down"
+            style="bottom: 0; left: 35%"
+          ></div>
+          <div class="touch-zone" id="btn-left" style="top: 35%; left: 0"></div>
+          <div
+            class="touch-zone"
+            id="btn-right"
+            style="top: 35%; right: 0"
+          ></div>
+        </div>
+        <div class="action-btns">
+          <div class="btn btn-b" id="btn-b">B</div>
+          <div class="btn btn-a" id="btn-a">A</div>
+        </div>
+      </div>
+    </div>
+    <script>
+      /**
+       * ------------------------------------------------------------------
+       * PART 2: AUDIO ENGINE (MP3 LOADER) & CONFIG
+       * ------------------------------------------------------------------
+       */
+
+      // --- 1. 設定 & 定数 ---
+
+      // ★ここでモードを切り替えます
+      // 0: 無音 (Silent)
+      // 1: 1つのMP3をループ (Single BGM)
+      // 2: 4つのMP3を重ねて再生 (Multi Track / Stem)
+      const GAME_CONFIG = {
+        PLAY_MODE: 1,
+
+        // 謎解きの正解データ
+        RIDDLES: [
+          { answer: "BROWN", imgSrc: "Q1.png" },
+          { answer: "AWAKE", imgSrc: "Q2.png" },
+          { answer: "CAKE ", imgSrc: "Q3.png" },
+          { answer: "DROP ", imgSrc: "Q4.png" },
+        ],
+
+        // 読み込むファイル名
+        FILES: {
+          // Mode 1用
+          BGM: "bgm.mp3",
+          // Mode 2用 (ドラム, ベース, コード, メロディの順を推奨)
+          TRACKS: ["track1.mp3", "track2.mp3", "track3.mp3", "track4.mp3"],
+        },
+      };
+
+      const CHAR_LIST = "ABCDEFGHIJKLMNOPQRSTUVWXYZ ";
+
+      // --- 2. オーディオエンジン (Web Audio API) ---
+      const AudioEngine = {
+        ctx: null,
+        buffers: [], // 読み込んだ音声データ
+        sources: [], // 再生中のソースノード
+        gains: [], // 音量ノード
+        isLoading: false,
+        isPlaying: false,
+        startTime: 0, // 再生開始時刻 (シークバー用)
+        duration: 0, // 曲の長さ (シークバー用)
+
+        init: function () {
+          if (!this.ctx) {
+            this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+          }
+        },
+
+        // ファイル読み込み (モードに応じて分岐)
+        load: async function () {
+          if (GAME_CONFIG.PLAY_MODE === 0) return; // Mode 0は読み込みなし
+
+          this.init();
+          this.isLoading = true;
+          this.buffers = [];
+
+          const fileList =
+            GAME_CONFIG.PLAY_MODE === 1
+              ? [GAME_CONFIG.FILES.BGM]
+              : GAME_CONFIG.FILES.TRACKS;
+
+          try {
+            // 全ファイルを並列ダウンロード & デコード
+            const promises = fileList.map(async (url) => {
+              const response = await fetch(url);
+              const arrayBuffer = await response.arrayBuffer();
+              return await this.ctx.decodeAudioData(arrayBuffer);
+            });
+
+            this.buffers = await Promise.all(promises);
+
+            // 曲の長さを取得 (最初のトラック基準)
+            if (this.buffers.length > 0) {
+              this.duration = this.buffers[0].duration;
+            }
+
+            console.log("Audio Loaded!");
+          } catch (e) {
+            console.error("Audio Load Failed:", e);
+          } finally {
+            this.isLoading = false;
+          }
+        },
+
+        // 再生開始
+        play: function () {
+          if (GAME_CONFIG.PLAY_MODE === 0) return;
+          if (!this.ctx || this.buffers.length === 0) return;
+          if (this.isPlaying) return;
+
+          this.resume(); // iOS対策
+
+          // ソースの作成と接続
+          const now = this.ctx.currentTime + 0.1; // 0.1秒後に一斉スタート
+          this.startTime = now;
+
+          this.sources = [];
+          this.gains = [];
+
+          this.buffers.forEach((buffer, index) => {
+            const source = this.ctx.createBufferSource();
+            const gain = this.ctx.createGain();
+
+            source.buffer = buffer;
+            source.loop = true; // ループ有効化
+
+            // Mode 2の場合、音量を制御
+            if (GAME_CONFIG.PLAY_MODE === 2) {
+              // 初期状態: トラック1のみON、他はミュート (後でupdateVolumesで制御)
+              gain.gain.value = index === 0 ? 1.0 : 0.0;
+            } else {
+              gain.gain.value = 1.0;
+            }
+
+            source.connect(gain);
+            gain.connect(this.ctx.destination);
+
+            source.start(now); // 完全に同時に開始
+
+            this.sources.push(source);
+            this.gains.push(gain);
+          });
+
+          this.isPlaying = true;
+        },
+
+        // 音量更新 (Mode 2用: 正解数に応じてトラックを開放)
+        updateVolumes: function (solvedCount) {
+          if (GAME_CONFIG.PLAY_MODE !== 2) return;
+
+          // activeTracks: 0問正解でもドラム(Track1)は鳴る → 1問正解でTrack1+2...
+          const activeTracks = Math.min(solvedCount + 1, 4);
+
+          this.gains.forEach((gain, index) => {
+            // フェードイン/アウト処理
+            const targetVol = index < activeTracks ? 1.0 : 0.0;
+            const now = this.ctx.currentTime;
+            gain.gain.cancelScheduledValues(now);
+            gain.gain.linearRampToValueAtTime(targetVol, now + 0.5); // 0.5秒かけて変化
+          });
+        },
+
+        // コンテキストの再開 (タッチイベント用)
+        resume: function () {
+          if (this.ctx && this.ctx.state === "suspended") {
+            this.ctx.resume();
+          }
+        },
+
+        // 現在の再生位置 (0.0 〜 1.0) を取得
+        getProgress: function () {
+          if (!this.isPlaying || !this.duration) return 0;
+          const elapsed = this.ctx.currentTime - this.startTime;
+          return (elapsed % this.duration) / this.duration;
+        },
+
+        // 現在のタイム表示用 (MM:SS)
+        getTimeStr: function () {
+          if (!this.isPlaying || !this.duration) return "0:00";
+          const elapsed =
+            (this.ctx.currentTime - this.startTime) % this.duration;
+          const m = Math.floor(elapsed / 60);
+          const s = Math.floor(elapsed % 60)
+            .toString()
+            .padStart(2, "0");
+          return `${m}:${s}`;
+        },
+      };
+      /**
+       * ------------------------------------------------------------------
+       * PART 3: GAME LOGIC & UI RENDERER (MP3 MODE)
+       * ------------------------------------------------------------------
+       */
+
+      // --- 4. ゲームデータ初期化 ---
+      const GAME_STATE = {
+        // 設定から謎データを生成
+        riddles: GAME_CONFIG.RIDDLES.map((r) => ({
+          ...r,
+          img: new Image(),
+          solved: false,
+          inputBuffer: [0, 0, 0, 0, 0], // 謎ごとの入力保持
+        })),
+        currentRiddleIndex: 0,
+        cursorPos: 0,
+        isFirstInteraction: true, // 初回タップ判定用
+      };
+
+      // 画像プリロード
+      GAME_STATE.riddles.forEach((r) => (r.img.src = r.imgSrc));
+
+      // --- 5. メインループ & 描画処理 ---
+      const canvas = document.getElementById("gameCanvas");
+      const ctx = canvas.getContext("2d", { alpha: false });
+
+      const C = {
+        bg: "#9CA04C",
+        dark: "#0f380f",
+        light: "#8bac0f",
+      };
+
+      function resizeCanvas() {
+        const container = canvas.parentElement;
+        const internalWidth = 160;
+        const ratio = container.clientHeight / container.clientWidth;
+        const internalHeight = Math.floor(internalWidth * ratio);
+        canvas.width = internalWidth;
+        canvas.height = internalHeight;
+        ctx.imageSmoothingEnabled = false;
+
+        // グリッド調整
+        const displayWidth = container.clientWidth;
+        const scale = displayWidth / internalWidth;
+        const overlay = document.querySelector(".grid-overlay");
+        if (overlay) overlay.style.backgroundSize = `100% ${scale * 4}px`; // スキャンライン幅調整
+      }
+      window.addEventListener("resize", resizeCanvas);
+
+      // 描画ループ
+      function renderLoop() {
+        const w = canvas.width;
+        const h = canvas.height;
+
+        // 1. 全体をクリア
+        ctx.fillStyle = C.bg;
+        ctx.fillRect(0, 0, w, h);
+
+        // フォント設定
+        ctx.font = '16px "Press Start 2P"';
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+
+        // --- ローディング画面 ---
+        if (AudioEngine.isLoading) {
+          ctx.fillStyle = C.dark;
+          ctx.fillText("LOADING...", w / 2, h / 2);
+          requestAnimationFrame(renderLoop);
+          return;
+        }
+
+        const riddle = GAME_STATE.riddles[GAME_STATE.currentRiddleIndex];
+
+        // --- A. 画像エリア (上部固定 160x160) ---
+        if (riddle.img.complete) {
+          ctx.drawImage(riddle.img, 0, 0, 160, 160);
+        } else {
+          ctx.fillStyle = C.dark;
+          ctx.fillRect(0, 0, 160, 160);
+        }
+
+        // 正解時の演出（半透明）
+        if (riddle.solved) {
+          ctx.fillStyle = "rgba(156, 160, 76, 0.6)";
+          ctx.fillRect(0, 0, 160, 160);
+        }
+
+        // --- レイアウト計算 ---
+        const barH = 14;
+        const barY = h - barH;
+        const dialH = 28;
+        const dialY = barY - dialH - 8;
+
+        // --- B. 入力エリア ---
+        const boxW = 24;
+        const boxH = 26;
+        const gap = 2;
+        const adjustX = 1;
+        const adjustY = 1; // 微調整
+
+        const totalW = boxW * 5 + gap * 4;
+        const dialXStart = Math.floor((w - totalW) / 2);
+
+        for (let i = 0; i < 5; i++) {
+          const x = dialXStart + i * (boxW + gap);
+          const centerX = x + boxW / 2;
+          const centerY = dialY + boxH / 2;
+
+          // カーソル
+          if (i === GAME_STATE.cursorPos) {
+            ctx.fillStyle = C.dark;
+            ctx.fillRect(x, dialY, boxW, boxH);
+            ctx.fillStyle = C.bg;
+          } else {
+            ctx.fillStyle = C.dark;
+          }
+
+          // 文字
+          const charIndex = riddle.inputBuffer[i];
+          const char = CHAR_LIST[charIndex];
+          ctx.fillText(
+            char,
+            Math.floor(centerX + adjustX),
+            Math.floor(centerY + adjustY)
+          );
+        }
+
+        // --- C. フッター (シークバー & タイム) ---
+        // モード0以外なら表示
+        if (GAME_CONFIG.PLAY_MODE !== 0) {
+          ctx.fillStyle = C.dark;
+          ctx.fillRect(0, barY, w, barH);
+
+          // タイム表示 (右寄せ)
+          const timeStr = AudioEngine.getTimeStr();
+          ctx.font = '8px "Press Start 2P"'; // ここだけ小さく
+          ctx.textAlign = "right";
+          ctx.fillStyle = C.bg;
+          ctx.fillText(timeStr, w - 2, barY + barH / 2 + 1);
+
+          // プログレスバー
+          const progress = AudioEngine.getProgress(); // 0.0 ~ 1.0
+          const barAreaW = w - 40; // タイム表示分を引く
+
+          // バー枠
+          ctx.fillStyle = C.bg;
+          ctx.fillRect(4, barY + 5, barAreaW, 4);
+
+          // バー中身 (進行)
+          if (progress > 0) {
+            ctx.fillStyle = C.dark;
+            ctx.fillRect(5, barY + 6, Math.floor((barAreaW - 2) * progress), 2);
+          }
+        } else {
+          // Mode 0: ただの黒帯
+          ctx.fillStyle = C.dark;
+          ctx.fillRect(0, barY, w, barH);
+        }
+
+        requestAnimationFrame(renderLoop);
+      }
+
+      // --- 6. 入力ハンドリング ---
+
+      function handleInput(action) {
+        // --- オーディオ初期化 (最初の操作時) ---
+        if (GAME_STATE.isFirstInteraction) {
+          GAME_STATE.isFirstInteraction = false;
+          if (GAME_CONFIG.PLAY_MODE !== 0) {
+            AudioEngine.load().then(() => {
+              AudioEngine.play();
+            });
+          }
+        }
+
+        const currentRiddle = GAME_STATE.riddles[GAME_STATE.currentRiddleIndex];
+
+        switch (action) {
+          case "UP":
+            currentRiddle.inputBuffer[GAME_STATE.cursorPos]--;
+            if (currentRiddle.inputBuffer[GAME_STATE.cursorPos] < 0) {
+              currentRiddle.inputBuffer[GAME_STATE.cursorPos] =
+                CHAR_LIST.length - 1;
+            }
+            break;
+          case "DOWN":
+            currentRiddle.inputBuffer[GAME_STATE.cursorPos]++;
+            if (
+              currentRiddle.inputBuffer[GAME_STATE.cursorPos] >=
+              CHAR_LIST.length
+            ) {
+              currentRiddle.inputBuffer[GAME_STATE.cursorPos] = 0;
+            }
+            break;
+          case "LEFT":
+            GAME_STATE.cursorPos--;
+            if (GAME_STATE.cursorPos < 0) GAME_STATE.cursorPos = 4;
+            break;
+          case "RIGHT":
+            GAME_STATE.cursorPos++;
+            if (GAME_STATE.cursorPos > 4) GAME_STATE.cursorPos = 0;
+            break;
+
+          case "A": // 送信
+            if (currentRiddle.solved) return;
+            checkAnswer(currentRiddle);
+            break;
+
+          case "B": // 次の謎へ
+            GAME_STATE.currentRiddleIndex++;
+            if (GAME_STATE.currentRiddleIndex >= GAME_STATE.riddles.length) {
+              GAME_STATE.currentRiddleIndex = 0;
+            }
+            GAME_STATE.cursorPos = 0;
+            break;
+        }
+      }
+
+      function checkAnswer(riddle) {
+        const inputStr = riddle.inputBuffer
+          .map((idx) => CHAR_LIST[idx])
+          .join("");
+
+        if (inputStr === riddle.answer) {
+          riddle.solved = true;
+
+          // 正解したら音量更新 (Mode 2のみ)
+          if (GAME_CONFIG.PLAY_MODE === 2) {
+            const solvedCount = countSolved();
+            AudioEngine.updateVolumes(solvedCount);
+          }
+        }
+      }
+
+      function countSolved() {
+        return GAME_STATE.riddles.filter((r) => r.solved).length;
+      }
+
+      // --- 7. イベントリスナー ---
+
+      const bindTouch = (id, action) => {
+        const el = document.getElementById(id);
+        const isButton = el.classList.contains("btn");
+
+        el.addEventListener("touchstart", (e) => {
+          e.preventDefault();
+          handleInput(action);
+          if (!isButton) {
+            el.style.backgroundColor = "rgba(0,0,0,0.1)";
+          } else {
+            el.classList.add("active");
+          }
+        });
+
+        el.addEventListener("touchend", (e) => {
+          e.preventDefault();
+          if (!isButton) {
+            el.style.backgroundColor = "transparent";
+          } else {
+            el.classList.remove("active");
+          }
+        });
+
+        el.addEventListener("mousedown", () => handleInput(action));
+      };
+
+      bindTouch("btn-up", "UP");
+      bindTouch("btn-down", "DOWN");
+      bindTouch("btn-left", "LEFT");
+      bindTouch("btn-right", "RIGHT");
+      bindTouch("btn-a", "A");
+      bindTouch("btn-b", "B");
+
+      document.addEventListener("keydown", (e) => {
+        switch (e.key) {
+          case "ArrowUp":
+            handleInput("UP");
+            break;
+          case "ArrowDown":
+            handleInput("DOWN");
+            break;
+          case "ArrowLeft":
+            handleInput("LEFT");
+            break;
+          case "ArrowRight":
+            handleInput("RIGHT");
+            break;
+          case "z":
+          case "Enter":
+            handleInput("A");
+            break;
+          case "x":
+          case "Backspace":
+            handleInput("B");
+            break;
+        }
+      });
+
+      // ダブルタップで全画面
+      let lastTap = 0;
+      document.body.addEventListener("touchend", (e) => {
+        const currentTime = new Date().getTime();
+        const tapLength = currentTime - lastTap;
+        if (tapLength < 300 && tapLength > 0) {
+          e.preventDefault();
+          if (!document.fullscreenElement) {
+            document.documentElement
+              .requestFullscreen()
+              .catch((err) => console.log(err));
+          }
+        }
+        lastTap = currentTime;
+      });
+
+      // 初期化
+      resizeCanvas();
+      requestAnimationFrame(renderLoop);
+    </script>
+  </body>
+</html>
