@@ -139,9 +139,10 @@ function renderTitleScreen() {
     const y = startY + index * lineHeight;
     const nameY = y - 4; // ステージ名のY座標
     const difficultyY = y + 8; // 難易度表示のY座標
+    const isSelected = index === TITLE_STATE.cursorIndex;
     
     // カーソル表示
-    if (index === TITLE_STATE.cursorIndex) {
+    if (isSelected) {
       ctx.fillStyle = C.dark;
       ctx.fillRect(5, y - 10, w - 10, lineHeight - 2);
       ctx.fillStyle = C.bg;
@@ -159,21 +160,25 @@ function renderTitleScreen() {
     const boxSize = 6;
     const boxGap = 2;
     const totalWidth = boxSize * 5 + boxGap * 4;
-    const difficultyStartX = (w - totalWidth) / 2;
+    const difficultyStartX = Math.floor((w - totalWidth) / 2);
+
+    // 選択時は色を反転
+    const fillColor = isSelected ? C.bg : C.dark;
+    const strokeColor = isSelected ? C.bg : C.dark;
 
     for (let i = 0; i < 5; i++) {
-      const boxX = difficultyStartX + i * (boxSize + boxGap);
-      const boxY = difficultyY - boxSize / 2;
+      const boxX = Math.floor(difficultyStartX + i * (boxSize + boxGap));
+      const boxY = Math.floor(difficultyY - boxSize / 2);
 
       // 塗りつぶすかどうか
       if (i < difficulty) {
-        ctx.fillStyle = C.dark;
+        ctx.fillStyle = fillColor;
         ctx.fillRect(boxX, boxY, boxSize, boxSize);
       } else {
         // 空の四角形（枠線のみ）
-        ctx.strokeStyle = C.dark;
+        ctx.strokeStyle = strokeColor;
         ctx.lineWidth = 1;
-        ctx.strokeRect(boxX, boxY, boxSize, boxSize);
+        ctx.strokeRect(boxX + 0.5, boxY + 0.5, boxSize - 1, boxSize - 1);
       }
     }
   });
