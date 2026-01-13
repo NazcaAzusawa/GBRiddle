@@ -120,7 +120,7 @@ function renderTitleScreen() {
   // タイトル
   ctx.fillStyle = C.dark;
   ctx.font = '14px "Press Start 2P"';
-  ctx.fillText("STAGE SELECT", w / 2, 20);
+  ctx.fillText("STAGESELECT", w / 2, 20);
 
   // ローディング表示
   if (TITLE_STATE.isLoading) {
@@ -152,11 +152,6 @@ function renderTitleScreen() {
     const displayName = stage.name.length > 18 ? stage.name.substring(0, 15) + "..." : stage.name;
     ctx.fillText(displayName, w / 2, y);
   });
-
-  // 操作説明
-  ctx.font = '6px "Press Start 2P"';
-  ctx.fillStyle = C.dark;
-  ctx.fillText("UP/DOWN: MOVE  A: SELECT", w / 2, h - 10);
 }
 
 // ゲーム画面を描画
