@@ -16,6 +16,11 @@ let TITLE_STATE = {
   isLoading: false,
 };
 
+// 隠しコマンド用
+const KONAMI_CODE = ["UP", "UP", "DOWN", "DOWN", "LEFT", "RIGHT", "LEFT", "RIGHT", "B", "A"];
+let commandInput = [];
+let commandTimeout = null;
+
 // SHA-256ハッシュ化関数
 async function sha256(message) {
   const msgBuffer = new TextEncoder().encode(message);
@@ -341,6 +346,51 @@ function handleInput(action) {
 }
 
 function handleTitleInput(action) {
+  // 隠しコマンドの検出（タイトル画面でのみ）
+  if (!TITLE_STATE.isLoading) {
+    // タイムアウトをリセット
+    if (commandTimeout) {
+      clearTimeout(commandTimeout);
+    }
+
+    // 入力履歴に追加
+    commandInput.push(action);
+
+    // 履歴が長すぎる場合は先頭を削除
+    if (commandInput.length > KONAMI_CODE.length) {
+      commandInput.shift();
+    }
+
+    // コマンドが一致するかチェック
+    if (commandInput.length === KONAMI_CODE.length) {
+      let match = true;
+      for (let i = 0; i < KONAMI_CODE.length; i++) {
+        if (commandInput[i] !== KONAMI_CODE[i]) {
+          match = false;
+          break;
+        }
+      }
+
+      if (match) {
+        // コマンド成功！B-sideを読み込む
+        commandInput = [];
+        if (commandTimeout) {
+          clearTimeout(commandTimeout);
+          commandTimeout = null;
+        }
+        selectStage("data/B-side.json");
+        return; // 通常の処理をスキップ
+      }
+    }
+
+    // タイムアウトを設定（最後の入力から3秒後にリセット）
+    commandTimeout = setTimeout(() => {
+      commandInput = [];
+      commandTimeout = null;
+    }, 3000);
+  }
+
+  // 通常の入力処理
   switch (action) {
     case "UP":
       if (TITLE_STATE.stages.length === 0) return;
@@ -362,7 +412,7 @@ function handleTitleInput(action) {
         selectStage(selectedStage.path);
       }
       break;
-    // Bボタンはタイトル画面では無効
+    // Bボタンはタイトル画面では無効（ただしコマンド入力には使用される）
   }
 }
 

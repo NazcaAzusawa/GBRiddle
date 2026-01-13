@@ -1,0 +1,35 @@
+{
+  "PLAY_MODE": 1,
+  "RIDDLES": [
+    {
+      "answerHash": "25cee395924a79e7bb55a42961998600f696ee2e4904600e23db17cfb2714ce4",
+      "imgSrc": "Q1.png",
+      "isLocked": false
+    },
+    {
+      "answerHash": "3da4e330c9018f54189da6fc5a2807e368cfde22043167ca28afda1995b1cdc5",
+      "imgSrc": "Q2.png",
+      "isLocked": false
+    },
+    {
+      "answerHash": "26fc4c8674776b69fa00f65b1cb8519d94960c2051017b6ff2a7fc0043b4fdb1",
+      "imgSrc": "Q3.png",
+      "isLocked": false
+    },
+    {
+      "answerHash": "dec60f26e981419881de02e73beb136c8ecb3c2c656dcada34d1371c48566ab2",
+      "imgSrc": "Q4.png",
+      "isLocked": true,
+      "unlockCondition": 3
+    }
+  ],
+  "FILES": {
+    "BGM": "bgm.mp3",
+    "TRACKS": [
+      "track1.mp3",
+      "track2.mp3",
+      "track3.mp3",
+      "track4.mp3"
+    ]
+  }
+}
