@@ -2,22 +2,22 @@
   "PLAY_MODE": 1,
   "RIDDLES": [
     {
-      "answerHash": "25cee395924a79e7bb55a42961998600f696ee2e4904600e23db17cfb2714ce4",
+      "answerHash": "3f75104d4594555e5ef7a1cb3997c42b801f71c9c2f581605fa939598187b2f3",
       "imgSrc": "Q1.png",
       "isLocked": false
     },
     {
-      "answerHash": "3da4e330c9018f54189da6fc5a2807e368cfde22043167ca28afda1995b1cdc5",
+      "answerHash": "5f8b22f90d5701026730328b1b411419aba99c2a18ed357707a4050dda7d7cb4",
       "imgSrc": "Q2.png",
       "isLocked": false
     },
     {
-      "answerHash": "26fc4c8674776b69fa00f65b1cb8519d94960c2051017b6ff2a7fc0043b4fdb1",
+      "answerHash": "1186b0753702dc8f33ca74dbd411969b22f672d4717f1ffad23c7d5eae211beb",
       "imgSrc": "Q3.png",
       "isLocked": false
     },
     {
-      "answerHash": "dec60f26e981419881de02e73beb136c8ecb3c2c656dcada34d1371c48566ab2",
+      "answerHash": "c8b6c094bbbda1f69723dcf2333ab9c9086576065bd1554f7466c52f47f2720d",
       "imgSrc": "Q4.png",
       "isLocked": true,
       "unlockCondition": 3

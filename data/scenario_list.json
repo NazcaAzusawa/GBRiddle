@@ -2,9 +2,9 @@
   "stages": [
     {
       "id": "stage1",
-      "name": "Stage 1",
+      "name": "SQUARE",
       "difficulty": 1,
-      "path": "data/1.json"
+      "path": "data/SQUARE.json"
     },
     {
       "id": "stage2",
