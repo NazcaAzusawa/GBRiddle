@@ -137,7 +137,7 @@ function renderTitleScreen() {
 
   TITLE_STATE.stages.forEach((stage, index) => {
     const y = startY + index * lineHeight;
-    const nameY = y - 4; // ステージ名のY座標
+    const nameY = y - 6; // ステージ名のY座標（上に移動）
     const difficultyY = y + 8; // 難易度表示のY座標
     const isSelected = index === TITLE_STATE.cursorIndex;
     
@@ -152,14 +152,17 @@ function renderTitleScreen() {
 
     // ステージ名
     ctx.font = '8px "Press Start 2P"';
+    ctx.textBaseline = "top"; // 上揃えに変更して潰れを防ぐ
     const displayName = stage.name.length > 18 ? stage.name.substring(0, 15) + "..." : stage.name;
     ctx.fillText(displayName, w / 2, nameY);
+    ctx.textBaseline = "middle"; // 元に戻す
 
-    // 難易度表示（四角形5つ）
+    // 難易度表示（四角形5つ、横長）
     const difficulty = stage.difficulty || 0;
-    const boxSize = 6;
+    const boxWidth = 8; // 幅を広げる
+    const boxHeight = 4; // 高さを縮める
     const boxGap = 2;
-    const totalWidth = boxSize * 5 + boxGap * 4;
+    const totalWidth = boxWidth * 5 + boxGap * 4;
     const difficultyStartX = Math.floor((w - totalWidth) / 2);
 
     // 選択時は色を反転
@@ -167,18 +170,18 @@ function renderTitleScreen() {
     const strokeColor = isSelected ? C.bg : C.dark;
 
     for (let i = 0; i < 5; i++) {
-      const boxX = Math.floor(difficultyStartX + i * (boxSize + boxGap));
-      const boxY = Math.floor(difficultyY - boxSize / 2);
+      const boxX = Math.floor(difficultyStartX + i * (boxWidth + boxGap));
+      const boxY = Math.floor(difficultyY - boxHeight / 2);
 
       // 塗りつぶすかどうか
       if (i < difficulty) {
         ctx.fillStyle = fillColor;
-        ctx.fillRect(boxX, boxY, boxSize, boxSize);
+        ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
       } else {
         // 空の四角形（枠線のみ）
         ctx.strokeStyle = strokeColor;
         ctx.lineWidth = 1;
-        ctx.strokeRect(boxX + 0.5, boxY + 0.5, boxSize - 1, boxSize - 1);
+        ctx.strokeRect(boxX + 0.5, boxY + 0.5, boxWidth - 1, boxHeight - 1);
       }
     }
   });
