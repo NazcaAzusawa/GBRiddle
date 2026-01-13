@@ -132,16 +132,18 @@ function renderTitleScreen() {
 
   // ステージリスト
   const startY = 40;
-  const lineHeight = 20;
+  const lineHeight = 28; // 縦幅を広げる
   const maxVisible = Math.floor((h - startY - 20) / lineHeight);
 
   TITLE_STATE.stages.forEach((stage, index) => {
     const y = startY + index * lineHeight;
+    const nameY = y - 4; // ステージ名のY座標
+    const difficultyY = y + 8; // 難易度表示のY座標
     
     // カーソル表示
     if (index === TITLE_STATE.cursorIndex) {
       ctx.fillStyle = C.dark;
-      ctx.fillRect(5, y - 8, w - 10, lineHeight - 2);
+      ctx.fillRect(5, y - 10, w - 10, lineHeight - 2);
       ctx.fillStyle = C.bg;
     } else {
       ctx.fillStyle = C.dark;
@@ -150,7 +152,30 @@ function renderTitleScreen() {
     // ステージ名
     ctx.font = '8px "Press Start 2P"';
     const displayName = stage.name.length > 18 ? stage.name.substring(0, 15) + "..." : stage.name;
-    ctx.fillText(displayName, w / 2, y);
+    ctx.fillText(displayName, w / 2, nameY);
+
+    // 難易度表示（四角形5つ）
+    const difficulty = stage.difficulty || 0;
+    const boxSize = 6;
+    const boxGap = 2;
+    const totalWidth = boxSize * 5 + boxGap * 4;
+    const difficultyStartX = (w - totalWidth) / 2;
+
+    for (let i = 0; i < 5; i++) {
+      const boxX = difficultyStartX + i * (boxSize + boxGap);
+      const boxY = difficultyY - boxSize / 2;
+
+      // 塗りつぶすかどうか
+      if (i < difficulty) {
+        ctx.fillStyle = C.dark;
+        ctx.fillRect(boxX, boxY, boxSize, boxSize);
+      } else {
+        // 空の四角形（枠線のみ）
+        ctx.strokeStyle = C.dark;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(boxX, boxY, boxSize, boxSize);
+      }
+    }
   });
 }
 
