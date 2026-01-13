@@ -220,28 +220,25 @@ function renderGameScreen() {
   const riddle = GAME_STATE.riddles[GAME_STATE.currentRiddleIndex];
 
   // --- A. 画像エリア (上部固定 160x160) ---
-  if (riddle.isLocked) {
-    // ロック中の場合は南京錠アイコンを表示
+  // 既存の画像を表示
+  if (riddle.img.complete && riddle.img.src) {
+    ctx.drawImage(riddle.img, 0, 0, 160, 160);
+  } else {
     ctx.fillStyle = C.dark;
     ctx.fillRect(0, 0, 160, 160);
-    drawLockIcon(80, 80, 60);
-    // "LOCKED"テキスト
-    ctx.font = '12px "Press Start 2P"';
-    ctx.fillStyle = C.bg;
-    ctx.fillText("LOCKED", 80, 140);
-  } else {
-    if (riddle.img.complete && riddle.img.src) {
-      ctx.drawImage(riddle.img, 0, 0, 160, 160);
-    } else {
-      ctx.fillStyle = C.dark;
-      ctx.fillRect(0, 0, 160, 160);
-    }
+  }
 
-    // 正解時の演出（半透明）
-    if (riddle.solved) {
-      ctx.fillStyle = "rgba(156, 160, 76, 0.6)";
-      ctx.fillRect(0, 0, 160, 160);
-    }
+  // ロック中の場合は、locked.pngを透明度30%で重ねる
+  if (riddle.isLocked && riddle.lockedImg.complete && riddle.lockedImg.src) {
+    ctx.globalAlpha = 0.3;
+    ctx.drawImage(riddle.lockedImg, 0, 0, 160, 160);
+    ctx.globalAlpha = 1.0; // 透明度をリセット
+  }
+
+  // 正解時の演出（半透明）
+  if (riddle.solved) {
+    ctx.fillStyle = "rgba(156, 160, 76, 0.6)";
+    ctx.fillRect(0, 0, 160, 160);
   }
 
   // --- レイアウト計算 ---
