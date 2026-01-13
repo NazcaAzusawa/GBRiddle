@@ -35,6 +35,7 @@ function initGameState(config) {
     riddles: GAME_CONFIG.RIDDLES.map((r) => ({
       ...r,
       img: new Image(),
+      lockedImg: new Image(), // ロック用画像
       solved: false,
       inputBuffer: [0, 0, 0, 0, 0], // 謎ごとの入力保持
     })),
@@ -44,9 +45,10 @@ function initGameState(config) {
 
   // 画像プリロード
   GAME_STATE.riddles.forEach((r) => {
-    if (!r.isLocked) {
-      r.img.src = r.imgSrc;
-    }
+    // すべての画像を読み込む（ロック中でも）
+    r.img.src = r.imgSrc;
+    // ロック用画像を読み込む
+    r.lockedImg.src = "locked.png";
   });
 }
 
@@ -117,11 +119,6 @@ function renderTitleScreen() {
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
 
-  // タイトル
-  ctx.fillStyle = C.dark;
-  ctx.font = '14px "Press Start 2P"';
-  ctx.fillText("STAGESELECT", w / 2, 20);
-
   // ローディング表示
   if (TITLE_STATE.isLoading) {
     ctx.fillStyle = C.dark;
@@ -129,6 +126,11 @@ function renderTitleScreen() {
     ctx.fillText("LOADING...", w / 2, h / 2);
     return;
   }
+
+  // タイトル（ローディング中は表示しない）
+  ctx.fillStyle = C.dark;
+  ctx.font = '14px "Press Start 2P"';
+  ctx.fillText("STAGESELECT", w / 2, 20);
 
   // ステージリスト
   const startY = 40;
