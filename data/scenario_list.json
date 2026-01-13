@@ -3,7 +3,14 @@
     {
       "id": "stage1",
       "name": "Stage 1",
-      "path": "data/scenario.json"
+      "difficulty": 1,
+      "path": "data/1.json"
+    },
+    {
+      "id": "stage2",
+      "name": "Stage 2",
+      "difficulty": 2,
+      "path": "data/2.json"
     }
   ]
 }
