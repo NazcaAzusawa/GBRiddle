@@ -230,7 +230,7 @@ function renderGameScreen() {
 
   // ロック中の場合は、locked.pngを透明度30%で重ねる
   if (riddle.isLocked && riddle.lockedImg.complete && riddle.lockedImg.src) {
-    ctx.globalAlpha = 0.3;
+    ctx.globalAlpha = 0.7;
     ctx.drawImage(riddle.lockedImg, 0, 0, 160, 160);
     ctx.globalAlpha = 1.0; // 透明度をリセット
   }
