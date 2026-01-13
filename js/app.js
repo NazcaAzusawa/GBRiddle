@@ -9,6 +9,12 @@ const CHAR_LIST = "ABCDEFGHIJKLMNOPQRSTUVWXYZ ";
 // グローバル変数
 let GAME_CONFIG = null;
 let GAME_STATE = null;
+let SCREEN_MODE = "title"; // "title" または "game"
+let TITLE_STATE = {
+  stages: [],
+  cursorIndex: 0,
+  isLoading: false,
+};
 
 // SHA-256ハッシュ化関数
 async function sha256(message) {
@@ -97,8 +103,64 @@ function drawLockIcon(x, y, size) {
   ctx.stroke();
 }
 
-// 描画ループ
-function renderLoop() {
+// タイトル画面を描画
+function renderTitleScreen() {
+  const w = canvas.width;
+  const h = canvas.height;
+
+  // 背景
+  ctx.fillStyle = C.bg;
+  ctx.fillRect(0, 0, w, h);
+
+  // フォント設定
+  ctx.font = '12px "Press Start 2P"';
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  // タイトル
+  ctx.fillStyle = C.dark;
+  ctx.font = '14px "Press Start 2P"';
+  ctx.fillText("STAGE SELECT", w / 2, 20);
+
+  // ローディング表示
+  if (TITLE_STATE.isLoading) {
+    ctx.fillStyle = C.dark;
+    ctx.font = '10px "Press Start 2P"';
+    ctx.fillText("LOADING...", w / 2, h / 2);
+    return;
+  }
+
+  // ステージリスト
+  const startY = 40;
+  const lineHeight = 20;
+  const maxVisible = Math.floor((h - startY - 20) / lineHeight);
+
+  TITLE_STATE.stages.forEach((stage, index) => {
+    const y = startY + index * lineHeight;
+    
+    // カーソル表示
+    if (index === TITLE_STATE.cursorIndex) {
+      ctx.fillStyle = C.dark;
+      ctx.fillRect(5, y - 8, w - 10, lineHeight - 2);
+      ctx.fillStyle = C.bg;
+    } else {
+      ctx.fillStyle = C.dark;
+    }
+
+    // ステージ名
+    ctx.font = '8px "Press Start 2P"';
+    const displayName = stage.name.length > 18 ? stage.name.substring(0, 15) + "..." : stage.name;
+    ctx.fillText(displayName, w / 2, y);
+  });
+
+  // 操作説明
+  ctx.font = '6px "Press Start 2P"';
+  ctx.fillStyle = C.dark;
+  ctx.fillText("UP/DOWN: MOVE  A: SELECT", w / 2, h - 10);
+}
+
+// ゲーム画面を描画
+function renderGameScreen() {
   const w = canvas.width;
   const h = canvas.height;
 
@@ -115,7 +177,6 @@ function renderLoop() {
   if (!GAME_CONFIG || !GAME_STATE) {
     ctx.fillStyle = C.dark;
     ctx.fillText("LOADING...", w / 2, h / 2);
-    requestAnimationFrame(renderLoop);
     return;
   }
 
@@ -123,7 +184,6 @@ function renderLoop() {
   if (AudioEngine.isLoading) {
     ctx.fillStyle = C.dark;
     ctx.fillText("LOADING...", w / 2, h / 2);
-    requestAnimationFrame(renderLoop);
     return;
   }
 
@@ -231,13 +291,55 @@ function renderLoop() {
     ctx.fillStyle = C.dark;
     ctx.fillRect(0, barY, w, barH);
   }
+}
 
+// 描画ループ
+function renderLoop() {
+  if (SCREEN_MODE === "title") {
+    renderTitleScreen();
+  } else {
+    renderGameScreen();
+  }
   requestAnimationFrame(renderLoop);
 }
 
 // --- 入力ハンドリング ---
 
 function handleInput(action) {
+  if (SCREEN_MODE === "title") {
+    handleTitleInput(action);
+  } else {
+    handleGameInput(action);
+  }
+}
+
+function handleTitleInput(action) {
+  switch (action) {
+    case "UP":
+      if (TITLE_STATE.stages.length === 0) return;
+      TITLE_STATE.cursorIndex--;
+      if (TITLE_STATE.cursorIndex < 0) {
+        TITLE_STATE.cursorIndex = TITLE_STATE.stages.length - 1;
+      }
+      break;
+    case "DOWN":
+      if (TITLE_STATE.stages.length === 0) return;
+      TITLE_STATE.cursorIndex++;
+      if (TITLE_STATE.cursorIndex >= TITLE_STATE.stages.length) {
+        TITLE_STATE.cursorIndex = 0;
+      }
+      break;
+    case "A": // 選択
+      if (TITLE_STATE.stages.length > 0 && !TITLE_STATE.isLoading) {
+        const selectedStage = TITLE_STATE.stages[TITLE_STATE.cursorIndex];
+        selectStage(selectedStage.path);
+      }
+      break;
+    // Bボタンはタイトル画面では無効
+  }
+}
+
+function handleGameInput(action) {
   if (!GAME_CONFIG || !GAME_STATE) return;
 
   const currentRiddle = GAME_STATE.riddles[GAME_STATE.currentRiddleIndex];
@@ -364,18 +466,15 @@ const bindTouch = (id, action) => {
   el.addEventListener("mousedown", () => handleInput(action));
 };
 
-// イベントリスナーの登録（ゲーム画面が表示された後に実行）
-function setupGameControls() {
-  bindTouch("btn-up", "UP");
-  bindTouch("btn-down", "DOWN");
-  bindTouch("btn-left", "LEFT");
-  bindTouch("btn-right", "RIGHT");
-  bindTouch("btn-a", "A");
-  bindTouch("btn-b", "B");
-}
+// イベントリスナーの登録
+bindTouch("btn-up", "UP");
+bindTouch("btn-down", "DOWN");
+bindTouch("btn-left", "LEFT");
+bindTouch("btn-right", "RIGHT");
+bindTouch("btn-a", "A");
+bindTouch("btn-b", "B");
 
 document.addEventListener("keydown", (e) => {
-  if (!GAME_CONFIG || !GAME_STATE) return;
   switch (e.key) {
     case "ArrowUp":
       handleInput("UP");
@@ -422,32 +521,15 @@ async function loadTitleScreen() {
   try {
     const response = await fetch("data/scenario_list.json");
     const listData = await response.json();
-    const stageList = document.getElementById("stageList");
-    stageList.innerHTML = "";
-
-    listData.stages.forEach((stage) => {
-      const li = document.createElement("li");
-      const button = document.createElement("button");
-      button.className = "stage-button";
-      button.textContent = stage.name;
-      button.addEventListener("click", () => selectStage(stage.path));
-      li.appendChild(button);
-      stageList.appendChild(li);
-    });
+    TITLE_STATE.stages = listData.stages;
+    TITLE_STATE.cursorIndex = 0;
   } catch (error) {
     console.error("Failed to load scenario_list.json:", error);
   }
 }
 
 async function selectStage(scenarioPath) {
-  const titleScreen = document.getElementById("titleScreen");
-  const gameScreen = document.getElementById("gameScreen");
-  const loadingMessage = document.getElementById("loadingMessage");
-  const stageList = document.getElementById("stageList");
-
-  // ローディング表示
-  stageList.style.display = "none";
-  loadingMessage.style.display = "block";
+  TITLE_STATE.isLoading = true;
 
   try {
     // オーディオエンジンの初期化と読み込み
@@ -463,33 +545,24 @@ async function selectStage(scenarioPath) {
     // ゲーム状態の初期化
     initGameState(config);
 
-    // 画面遷移
-    titleScreen.style.display = "none";
-    gameScreen.style.display = "flex";
-
-    // キャンバスのリサイズと描画ループ開始
-    resizeCanvas();
-    requestAnimationFrame(renderLoop);
+    // 画面モードをゲームに切り替え
+    SCREEN_MODE = "game";
 
     // オーディオ再生
     if (config.PLAY_MODE !== 0) {
       AudioEngine.play(config);
     }
-
-    // ゲームコントロールの設定
-    setupGameControls();
   } catch (error) {
     console.error("Failed to load stage:", error);
-    loadingMessage.textContent = "ERROR";
-    stageList.style.display = "block";
+    TITLE_STATE.isLoading = false;
   }
 }
 
 // 初期化: タイトル画面を読み込む
 async function init() {
   await loadTitleScreen();
-  // ゲーム画面のキャンバスは初期化しておく（非表示でも）
   resizeCanvas();
+  requestAnimationFrame(renderLoop);
 }
 
 // ページ読み込み時に初期化
