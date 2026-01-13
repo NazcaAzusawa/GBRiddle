@@ -1,0 +1,194 @@
+:root {
+  --bg-color: #202020;
+  --case-color: #555;
+  --screen-bg: #9ca04c;
+  --screen-pixel: #0f380f;
+  --dpad-color: #333;
+  --btn-a-color: #a9364a;
+  --btn-b-color: #333;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+body {
+  background-color: var(--bg-color);
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  font-family: "Press Start 2P", cursive;
+  display: flex;
+  justify-content: center;
+  color: #ccc;
+}
+
+.player-container {
+  width: 100%;
+  height: 100%;
+  max-width: 600px;
+  background-color: var(--case-color);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+}
+
+/* 画面エリア */
+.screen-area {
+  height: 70vh;
+  width: 100%;
+  padding: 20px;
+  background-color: #444;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-bottom: 2px solid #333;
+  border-radius: 0 0 20px 20px;
+  box-shadow: inset 0 -10px 20px rgba(0, 0, 0, 0.3);
+  position: relative;
+  z-index: 10;
+}
+
+.lcd-container {
+  width: 100%;
+  height: 100%;
+  background-color: var(--screen-bg);
+  border: 4px solid #333;
+  border-radius: 4px;
+  box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.2);
+  position: relative;
+  display: block;
+  cursor: pointer;
+}
+
+#gameCanvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+  -ms-interpolation-mode: nearest-neighbor;
+}
+
+.grid-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  /* 横線（スキャンライン）のみに変更して干渉縞を防止 */
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 50%,
+    rgba(0, 0, 0, 0.1) 50%
+  );
+  background-size: 100% 4px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* 操作エリア */
+.controls-area {
+  flex: 1;
+  position: relative;
+  background-color: var(--case-color);
+}
+
+.d-pad {
+  position: absolute;
+  top: 50%;
+  left: 10%;
+  transform: translateY(-50%);
+  width: 35vw;
+  height: 35vw;
+  max-width: 160px;
+  max-height: 160px;
+}
+.d-pad div {
+  position: absolute;
+  background-color: var(--dpad-color);
+  border-radius: 4px;
+  box-shadow: 0.5vh 0.5vh 0 #222;
+}
+.d-pad div:active,
+.d-pad div.active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+.d-pad .h {
+  width: 100%;
+  height: 33%;
+  top: 33%;
+  left: 0;
+}
+.d-pad .v {
+  width: 33%;
+  height: 100%;
+  top: 0;
+  left: 33%;
+}
+.d-pad .c {
+  width: 33%;
+  height: 33%;
+  top: 33%;
+  left: 33%;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.action-btns {
+  position: absolute;
+  top: 50%;
+  right: 5%;
+  transform: translateY(-50%) rotate(-15deg);
+  width: 35vw;
+  height: 15vw;
+  max-width: 160px;
+}
+
+.btn {
+  width: 12vw;
+  height: 12vw;
+  max-width: 50px;
+  max-height: 50px;
+  border-radius: 50%;
+  position: absolute;
+  box-shadow: 0.5vh 0.5vh 0 #222;
+  cursor: pointer;
+  color: rgba(0, 0, 0, 0.3);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: bold;
+  font-size: 10px;
+  font-family: sans-serif;
+}
+.btn:active,
+.btn.active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+.btn-a {
+  right: 0;
+  top: -2vw;
+  background-color: var(--btn-a-color);
+}
+.btn-b {
+  left: 2vw;
+  top: 4vw;
+  background-color: var(--btn-b-color);
+}
+
+.touch-zone {
+  position: absolute;
+  z-index: 20;
+  width: 30%;
+  height: 30%;
+}
