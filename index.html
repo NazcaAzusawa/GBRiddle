@@ -15,7 +15,17 @@
     <link rel="stylesheet" href="css/style.css" />
   </head>
   <body>
-    <div class="player-container">
+    <!-- タイトル画面 -->
+    <div id="titleScreen" class="title-screen">
+      <div class="title-container">
+        <h1 class="title-text">GBC Mystery Sequencer</h1>
+        <ul id="stageList" class="stage-list"></ul>
+        <div id="loadingMessage" class="loading-message" style="display: none;">LOADING...</div>
+      </div>
+    </div>
+
+    <!-- ゲーム画面 -->
+    <div id="gameScreen" class="player-container" style="display: none;">
       <div class="screen-area">
         <div class="lcd-container">
           <canvas id="gameCanvas"></canvas>

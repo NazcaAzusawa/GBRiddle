@@ -1,0 +1,9 @@
+{
+  "stages": [
+    {
+      "id": "stage1",
+      "name": "Stage 1",
+      "path": "data/scenario.json"
+    }
+  ]
+}

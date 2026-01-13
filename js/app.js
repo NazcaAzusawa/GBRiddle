@@ -34,11 +34,14 @@ function initGameState(config) {
     })),
     currentRiddleIndex: 0,
     cursorPos: 0,
-    isFirstInteraction: true, // 初回タップ判定用
   };
 
   // 画像プリロード
-  GAME_STATE.riddles.forEach((r) => (r.img.src = r.imgSrc));
+  GAME_STATE.riddles.forEach((r) => {
+    if (!r.isLocked) {
+      r.img.src = r.imgSrc;
+    }
+  });
 }
 
 // --- メインループ & 描画処理 ---
@@ -67,6 +70,32 @@ function resizeCanvas() {
   if (overlay) overlay.style.backgroundSize = `100% ${scale * 4}px`; // スキャンライン幅調整
 }
 window.addEventListener("resize", resizeCanvas);
+
+// 南京錠アイコンを描画
+function drawLockIcon(x, y, size) {
+  ctx.strokeStyle = C.dark;
+  ctx.fillStyle = C.dark;
+  ctx.lineWidth = 2;
+
+  // 本体（四角形）
+  const bodyW = size * 0.6;
+  const bodyH = size * 0.7;
+  const bodyX = x - bodyW / 2;
+  const bodyY = y - bodyH / 2 + size * 0.15;
+
+  ctx.fillRect(bodyX, bodyY, bodyW, bodyH);
+
+  // 鍵穴
+  ctx.fillStyle = C.bg;
+  const holeSize = size * 0.15;
+  ctx.fillRect(x - holeSize / 2, bodyY + bodyH * 0.3, holeSize, holeSize * 1.5);
+
+  // アーチ（上部の半円）
+  ctx.beginPath();
+  ctx.arc(x, bodyY, bodyW * 0.3, Math.PI, 0, false);
+  ctx.lineWidth = 3;
+  ctx.stroke();
+}
 
 // 描画ループ
 function renderLoop() {
@@ -101,17 +130,28 @@ function renderLoop() {
   const riddle = GAME_STATE.riddles[GAME_STATE.currentRiddleIndex];
 
   // --- A. 画像エリア (上部固定 160x160) ---
-  if (riddle.img.complete) {
-    ctx.drawImage(riddle.img, 0, 0, 160, 160);
-  } else {
+  if (riddle.isLocked) {
+    // ロック中の場合は南京錠アイコンを表示
     ctx.fillStyle = C.dark;
     ctx.fillRect(0, 0, 160, 160);
-  }
+    drawLockIcon(80, 80, 60);
+    // "LOCKED"テキスト
+    ctx.font = '12px "Press Start 2P"';
+    ctx.fillStyle = C.bg;
+    ctx.fillText("LOCKED", 80, 140);
+  } else {
+    if (riddle.img.complete && riddle.img.src) {
+      ctx.drawImage(riddle.img, 0, 0, 160, 160);
+    } else {
+      ctx.fillStyle = C.dark;
+      ctx.fillRect(0, 0, 160, 160);
+    }
 
-  // 正解時の演出（半透明）
-  if (riddle.solved) {
-    ctx.fillStyle = "rgba(156, 160, 76, 0.6)";
-    ctx.fillRect(0, 0, 160, 160);
+    // 正解時の演出（半透明）
+    if (riddle.solved) {
+      ctx.fillStyle = "rgba(156, 160, 76, 0.6)";
+      ctx.fillRect(0, 0, 160, 160);
+    }
   }
 
   // --- レイアウト計算 ---
@@ -145,13 +185,19 @@ function renderLoop() {
     }
 
     // 文字
-    const charIndex = riddle.inputBuffer[i];
-    const char = CHAR_LIST[charIndex];
-    ctx.fillText(
-      char,
-      Math.floor(centerX + adjustX),
-      Math.floor(centerY + adjustY)
-    );
+    if (riddle.isLocked) {
+      // ロック中は文字を表示しない（または"?"を表示）
+      ctx.font = '16px "Press Start 2P"';
+      ctx.fillText("?", centerX + adjustX, centerY + adjustY);
+    } else {
+      const charIndex = riddle.inputBuffer[i];
+      const char = CHAR_LIST[charIndex];
+      ctx.fillText(
+        char,
+        Math.floor(centerX + adjustX),
+        Math.floor(centerY + adjustY)
+      );
+    }
   }
 
   // --- C. フッター (シークバー & タイム) ---
@@ -192,20 +238,18 @@ function renderLoop() {
 // --- 入力ハンドリング ---
 
 function handleInput(action) {
-  // --- オーディオ初期化 (最初の操作時) ---
-  if (GAME_STATE.isFirstInteraction) {
-    GAME_STATE.isFirstInteraction = false;
-    if (GAME_CONFIG.PLAY_MODE !== 0) {
-      AudioEngine.load(GAME_CONFIG).then(() => {
-        AudioEngine.play(GAME_CONFIG);
-      });
-    }
-  }
+  if (!GAME_CONFIG || !GAME_STATE) return;
 
   const currentRiddle = GAME_STATE.riddles[GAME_STATE.currentRiddleIndex];
 
+  // ロック中の謎の場合、Bボタン以外の操作を無効化
+  if (currentRiddle.isLocked && action !== "B") {
+    return;
+  }
+
   switch (action) {
     case "UP":
+      if (currentRiddle.isLocked) return;
       currentRiddle.inputBuffer[GAME_STATE.cursorPos]--;
       if (currentRiddle.inputBuffer[GAME_STATE.cursorPos] < 0) {
         currentRiddle.inputBuffer[GAME_STATE.cursorPos] =
@@ -213,6 +257,7 @@ function handleInput(action) {
       }
       break;
     case "DOWN":
+      if (currentRiddle.isLocked) return;
       currentRiddle.inputBuffer[GAME_STATE.cursorPos]++;
       if (
         currentRiddle.inputBuffer[GAME_STATE.cursorPos] >=
@@ -222,16 +267,18 @@ function handleInput(action) {
       }
       break;
     case "LEFT":
+      if (currentRiddle.isLocked) return;
       GAME_STATE.cursorPos--;
       if (GAME_STATE.cursorPos < 0) GAME_STATE.cursorPos = 4;
       break;
     case "RIGHT":
+      if (currentRiddle.isLocked) return;
       GAME_STATE.cursorPos++;
       if (GAME_STATE.cursorPos > 4) GAME_STATE.cursorPos = 0;
       break;
 
     case "A": // 送信
-      if (currentRiddle.solved) return;
+      if (currentRiddle.isLocked || currentRiddle.solved) return;
       checkAnswer(currentRiddle);
       break;
 
@@ -262,6 +309,9 @@ async function checkAnswer(riddle) {
       const solvedCount = countSolved();
       AudioEngine.updateVolumes(solvedCount);
     }
+
+    // ロック解除チェック
+    checkUnlockConditions();
   }
 }
 
@@ -269,10 +319,27 @@ function countSolved() {
   return GAME_STATE.riddles.filter((r) => r.solved).length;
 }
 
+// ロック解除条件をチェック
+function checkUnlockConditions() {
+  const solvedCount = countSolved();
+
+  GAME_STATE.riddles.forEach((riddle) => {
+    if (riddle.isLocked && riddle.unlockCondition !== undefined) {
+      if (solvedCount >= riddle.unlockCondition) {
+        riddle.isLocked = false;
+        // 画像を読み込む
+        riddle.img.src = riddle.imgSrc;
+        console.log(`Riddle unlocked! (Solved: ${solvedCount})`);
+      }
+    }
+  });
+}
+
 // --- イベントリスナー ---
 
 const bindTouch = (id, action) => {
   const el = document.getElementById(id);
+  if (!el) return;
   const isButton = el.classList.contains("btn");
 
   el.addEventListener("touchstart", (e) => {
@@ -297,14 +364,18 @@ const bindTouch = (id, action) => {
   el.addEventListener("mousedown", () => handleInput(action));
 };
 
-bindTouch("btn-up", "UP");
-bindTouch("btn-down", "DOWN");
-bindTouch("btn-left", "LEFT");
-bindTouch("btn-right", "RIGHT");
-bindTouch("btn-a", "A");
-bindTouch("btn-b", "B");
+// イベントリスナーの登録（ゲーム画面が表示された後に実行）
+function setupGameControls() {
+  bindTouch("btn-up", "UP");
+  bindTouch("btn-down", "DOWN");
+  bindTouch("btn-left", "LEFT");
+  bindTouch("btn-right", "RIGHT");
+  bindTouch("btn-a", "A");
+  bindTouch("btn-b", "B");
+}
 
 document.addEventListener("keydown", (e) => {
+  if (!GAME_CONFIG || !GAME_STATE) return;
   switch (e.key) {
     case "ArrowUp":
       handleInput("UP");
@@ -345,20 +416,80 @@ document.body.addEventListener("touchend", (e) => {
   lastTap = currentTime;
 });
 
-// 初期化: scenario.jsonを読み込む
-async function init() {
+// --- タイトル画面のロジック ---
+
+async function loadTitleScreen() {
   try {
-    const response = await fetch("data/scenario.json");
-    const config = await response.json();
-    initGameState(config);
-    resizeCanvas();
-    requestAnimationFrame(renderLoop);
+    const response = await fetch("data/scenario_list.json");
+    const listData = await response.json();
+    const stageList = document.getElementById("stageList");
+    stageList.innerHTML = "";
+
+    listData.stages.forEach((stage) => {
+      const li = document.createElement("li");
+      const button = document.createElement("button");
+      button.className = "stage-button";
+      button.textContent = stage.name;
+      button.addEventListener("click", () => selectStage(stage.path));
+      li.appendChild(button);
+      stageList.appendChild(li);
+    });
   } catch (error) {
-    console.error("Failed to load scenario.json:", error);
-    // エラー時も描画ループは開始
+    console.error("Failed to load scenario_list.json:", error);
+  }
+}
+
+async function selectStage(scenarioPath) {
+  const titleScreen = document.getElementById("titleScreen");
+  const gameScreen = document.getElementById("gameScreen");
+  const loadingMessage = document.getElementById("loadingMessage");
+  const stageList = document.getElementById("stageList");
+
+  // ローディング表示
+  stageList.style.display = "none";
+  loadingMessage.style.display = "block";
+
+  try {
+    // オーディオエンジンの初期化と読み込み
+    AudioEngine.init();
+    const configResponse = await fetch(scenarioPath);
+    const config = await configResponse.json();
+
+    // オーディオ読み込み（PLAY_MODEが0でない場合）
+    if (config.PLAY_MODE !== 0) {
+      await AudioEngine.load(config);
+    }
+
+    // ゲーム状態の初期化
+    initGameState(config);
+
+    // 画面遷移
+    titleScreen.style.display = "none";
+    gameScreen.style.display = "flex";
+
+    // キャンバスのリサイズと描画ループ開始
     resizeCanvas();
     requestAnimationFrame(renderLoop);
+
+    // オーディオ再生
+    if (config.PLAY_MODE !== 0) {
+      AudioEngine.play(config);
+    }
+
+    // ゲームコントロールの設定
+    setupGameControls();
+  } catch (error) {
+    console.error("Failed to load stage:", error);
+    loadingMessage.textContent = "ERROR";
+    stageList.style.display = "block";
   }
+}
+
+// 初期化: タイトル画面を読み込む
+async function init() {
+  await loadTitleScreen();
+  // ゲーム画面のキャンバスは初期化しておく（非表示でも）
+  resizeCanvas();
 }
 
 // ページ読み込み時に初期化
