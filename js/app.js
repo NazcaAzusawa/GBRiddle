@@ -37,13 +37,24 @@ function initGameState(config) {
   GAME_CONFIG = config;
   GAME_STATE = {
     // 設定から謎データを生成
-    riddles: GAME_CONFIG.RIDDLES.map((r) => ({
-      ...r,
-      img: new Image(),
-      lockedImg: new Image(), // ロック用画像
-      solved: false,
-      inputBuffer: [0, 0, 0, 0, 0], // 謎ごとの入力保持
-    })),
+    riddles: GAME_CONFIG.RIDDLES.map((r) => {
+      const inputBuffer = [0, 0, 0, 0, 0];
+      // 固定位置を空白（インデックス26）に設定
+      if (r.fixedPositions && Array.isArray(r.fixedPositions)) {
+        r.fixedPositions.forEach((pos) => {
+          if (pos >= 0 && pos < 5) {
+            inputBuffer[pos] = 26; // 空白文字のインデックス
+          }
+        });
+      }
+      return {
+        ...r,
+        img: new Image(),
+        lockedImg: new Image(), // ロック用画像
+        solved: false,
+        inputBuffer: inputBuffer, // 謎ごとの入力保持
+      };
+    }),
     currentRiddleIndex: 0,
     cursorPos: 0,
   };
@@ -55,6 +66,12 @@ function initGameState(config) {
     // ロック用画像を読み込む
     r.lockedImg.src = "locked.png";
   });
+
+  // 初期カーソル位置を固定位置でない最初の位置に設定
+  const firstRiddle = GAME_STATE.riddles[0];
+  if (firstRiddle && firstRiddle.fixedPositions) {
+    GAME_STATE.cursorPos = findNextEditablePosition(0, firstRiddle.fixedPositions, 1);
+  }
 }
 
 // --- メインループ & 描画処理 ---
@@ -337,6 +354,33 @@ function renderLoop() {
 
 // --- 入力ハンドリング ---
 
+// 固定位置をスキップして次の編集可能な位置を探す
+function findNextEditablePosition(currentPos, fixedPositions, direction) {
+  if (!fixedPositions || fixedPositions.length === 0) {
+    // 固定位置がない場合、currentPosが-1の場合は0を返す
+    return currentPos < 0 ? 0 : currentPos;
+  }
+  
+  // currentPosが-1の場合は、directionに応じて最初または最後から開始
+  let nextPos = currentPos < 0 ? (direction > 0 ? -1 : 5) : currentPos;
+  let attempts = 0;
+  
+  while (attempts < 5) {
+    nextPos += direction;
+    if (nextPos < 0) nextPos = 4;
+    if (nextPos > 4) nextPos = 0;
+    
+    if (!fixedPositions.includes(nextPos)) {
+      return nextPos;
+    }
+    
+    attempts++;
+  }
+  
+  // すべて固定されている場合は最初の位置を返す
+  return 0;
+}
+
 function handleInput(action) {
   if (SCREEN_MODE === "title") {
     handleTitleInput(action);
@@ -420,6 +464,7 @@ function handleGameInput(action) {
   if (!GAME_CONFIG || !GAME_STATE) return;
 
   const currentRiddle = GAME_STATE.riddles[GAME_STATE.currentRiddleIndex];
+  const fixedPositions = currentRiddle.fixedPositions || [];
 
   // ロック中の謎の場合、Bボタン以外の操作を無効化
   if (currentRiddle.isLocked && action !== "B") {
@@ -429,6 +474,8 @@ function handleGameInput(action) {
   switch (action) {
     case "UP":
       if (currentRiddle.isLocked) return;
+      // 固定位置の場合は変更しない
+      if (fixedPositions.includes(GAME_STATE.cursorPos)) return;
       currentRiddle.inputBuffer[GAME_STATE.cursorPos]--;
       if (currentRiddle.inputBuffer[GAME_STATE.cursorPos] < 0) {
         currentRiddle.inputBuffer[GAME_STATE.cursorPos] =
@@ -437,6 +484,8 @@ function handleGameInput(action) {
       break;
     case "DOWN":
       if (currentRiddle.isLocked) return;
+      // 固定位置の場合は変更しない
+      if (fixedPositions.includes(GAME_STATE.cursorPos)) return;
       currentRiddle.inputBuffer[GAME_STATE.cursorPos]++;
       if (
         currentRiddle.inputBuffer[GAME_STATE.cursorPos] >=
@@ -447,13 +496,21 @@ function handleGameInput(action) {
       break;
     case "LEFT":
       if (currentRiddle.isLocked) return;
-      GAME_STATE.cursorPos--;
-      if (GAME_STATE.cursorPos < 0) GAME_STATE.cursorPos = 4;
+      // 固定位置をスキップ
+      GAME_STATE.cursorPos = findNextEditablePosition(
+        GAME_STATE.cursorPos,
+        fixedPositions,
+        -1
+      );
       break;
     case "RIGHT":
       if (currentRiddle.isLocked) return;
-      GAME_STATE.cursorPos++;
-      if (GAME_STATE.cursorPos > 4) GAME_STATE.cursorPos = 0;
+      // 固定位置をスキップ
+      GAME_STATE.cursorPos = findNextEditablePosition(
+        GAME_STATE.cursorPos,
+        fixedPositions,
+        1
+      );
       break;
 
     case "A": // 送信
@@ -466,7 +523,10 @@ function handleGameInput(action) {
       if (GAME_STATE.currentRiddleIndex >= GAME_STATE.riddles.length) {
         GAME_STATE.currentRiddleIndex = 0;
       }
-      GAME_STATE.cursorPos = 0;
+      // 次の謎の最初の編集可能な位置にカーソルを設定
+      const nextRiddle = GAME_STATE.riddles[GAME_STATE.currentRiddleIndex];
+      const nextFixedPositions = nextRiddle.fixedPositions || [];
+      GAME_STATE.cursorPos = findNextEditablePosition(-1, nextFixedPositions, 1);
       break;
   }
 }

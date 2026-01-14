@@ -1,0 +1,39 @@
+{
+  "PLAY_MODE": 1,
+  "RIDDLES": [
+    {
+      "answerHash": "d242a8c3b9c42e3e812d03b7ea068be7f15b42761c546145245535081ef81e4d",
+      "imgSrc": "BLANK/Q1.png",
+      "isLocked": false,
+      "fixedPositions": [2]
+    },
+    {
+      "answerHash": "351702377a101457638976ee8ec3e3f7b8d57db8389ee877cc20b94d952e0557",
+      "imgSrc": "BLANK/Q2.png",
+      "isLocked": false,
+      "fixedPositions": [0]
+    },
+    {
+      "answerHash": "e13f6eb6e01685bbedb3f0bf57e75a891ffea1f50e4e833a54db748e8d22a4be",
+      "imgSrc": "BLANK/Q3.png",
+      "isLocked": false,
+      "fixedPositions": [1]
+    },
+    {
+      "answerHash": "15fd002ca38d9e097fa5359b2dbfd85e61649c8e5ce9d1846c02391751a4a6bd",
+      "imgSrc": "BLANK/Q4.png",
+      "isLocked": true,
+      "unlockCondition": 3,
+      "fixedPositions": [3, 4]
+    }
+  ],
+  "FILES": {
+    "BGM": "bgm.mp3",
+    "TRACKS": [
+      "track1.mp3",
+      "track2.mp3",
+      "track3.mp3",
+      "track4.mp3"
+    ]
+  }
+}

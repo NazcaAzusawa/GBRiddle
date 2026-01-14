@@ -8,9 +8,9 @@
     },
     {
       "id": "stage2",
-      "name": "Stage 2",
+      "name": "BLANK",
       "difficulty": 2,
-      "path": "data/2.json"
+      "path": "data/BLANK.json"
     }
   ]
 }
