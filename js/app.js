@@ -357,8 +357,12 @@ function renderLoop() {
 // 固定位置をスキップして次の編集可能な位置を探す
 function findNextEditablePosition(currentPos, fixedPositions, direction) {
   if (!fixedPositions || fixedPositions.length === 0) {
-    // 固定位置がない場合、currentPosが-1の場合は0を返す
-    return currentPos < 0 ? 0 : currentPos;
+    // 固定位置がない場合、通常の左右移動
+    if (currentPos < 0) return 0;
+    let nextPos = currentPos + direction;
+    if (nextPos < 0) nextPos = 4;
+    if (nextPos > 4) nextPos = 0;
+    return nextPos;
   }
   
   // currentPosが-1の場合は、directionに応じて最初または最後から開始
